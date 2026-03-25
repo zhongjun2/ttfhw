@@ -1,0 +1,112 @@
+{
+  "community": "cann",
+  "scenario": "zero-to-custom-op",
+  "timestamp": "2026-03-25T09:45:40Z",
+  "cann_version": "8.0.RC1",
+  "test_mode": "mixed",
+  "test_environment": {
+    "os": "Linux 6.8.0-59-generic (Ubuntu)",
+    "docker_version": "29.2.1",
+    "docker_socket": "permission_denied",
+    "python_version": "3.x",
+    "bing_api_key": "not_configured",
+    "gitcode_token": "not_configured",
+    "ascendhub_reachable": false
+  },
+  "stages": {
+    "learn": {
+      "test_method": "manual (WebSearch + urllib)",
+      "blocker": "BING_API_KEY not set (automated framework: 401 PermissionDenied)",
+      "status": "warn",
+      "search_s": 2.1,
+      "official_link_rank": 1,
+      "nav_hops": 1,
+      "link_check_s": 6.74,
+      "total_s": 9.5,
+      "links_checked": 11,
+      "accessible_links": 8,
+      "broken_links": 2,
+      "unreachable_links": 1,
+      "broken_link_details": [
+        {"url": "https://www.hiascend.com/document/detail/zh/CANNCommunity/80RC3alpha002/softwareinst/instg/instg_0001.html", "code": 404, "note": "安装指南链接失效（版本路径不匹配）"},
+        {"url": "https://www.hiascend.com/document/detail/zh/CANNiquickstart/80RC1/quickstartCNN/quickstart_23_0001.html", "code": 404, "note": "旧版RC1快速入门链接失效"}
+      ],
+      "unreachable_link_details": [
+        {"url": "https://ascendhub.huawei.com", "code": 0, "note": "DNS解析失败，镜像仓库从测试网络不可达"}
+      ],
+      "accessible_link_details": [
+        {"url": "https://www.hiascend.com/document/detail/zh/canncommercial/80RC3/quickstart/quickstart/quickstart_18_0001.html", "code": 200, "latency_s": 1.659},
+        {"url": "https://www.hiascend.com/document/detail/zh/canncommercial/80RC1/quickstart/index.html", "code": 200, "latency_s": 1.466},
+        {"url": "https://www.hiascend.com/document", "code": 200, "latency_s": 0.102},
+        {"url": "https://www.hiascend.com/cann", "code": 200, "latency_s": 0.107},
+        {"url": "https://gitcode.com/ascend", "code": 200, "latency_s": 0.168},
+        {"url": "https://gitcode.com/ascend/samples/blob/master/README_CN.md", "code": 200, "latency_s": 0.165},
+        {"url": "https://gitcode.com/ascend/cann-samples/overview", "code": 200, "latency_s": 0.160},
+        {"url": "https://www.hiascend.com/developer/download", "code": 200, "latency_s": 0.722}
+      ],
+      "errors": ["automated_framework: search_error 401 PermissionDenied (BING_API_KEY not set)"]
+    },
+    "get": {
+      "test_method": "automated framework",
+      "status": "fail",
+      "wall_clock_s": null,
+      "net_download_s": null,
+      "image_size_mb": null,
+      "setup_steps": 0,
+      "errors": [
+        "docker_socket_permission_denied: user not in docker group",
+        "ascendhub_dns_failure: ascendhub.huawei.com not reachable from test network"
+      ],
+      "framework_reported_status": "pass (false positive — bug: Docker permission error not propagated to status)",
+      "environment_info": {
+        "docker_installed": true,
+        "docker_version": "29.2.1",
+        "target_image": "ascendhub.huawei.com/public-ascendhub/ascend-toolkit:8.0.RC1",
+        "socket_path": "/var/run/docker.sock",
+        "socket_accessible": false
+      }
+    },
+    "use": {
+      "test_method": "automated framework",
+      "status": "fail",
+      "compile_s": null,
+      "run_s": null,
+      "compile_errors": 0,
+      "compile_warnings": 0,
+      "run_errors": 0,
+      "errors": ["container_not_available (blocked by Get stage failure)"],
+      "fixture": "fixtures/custom_op/add_custom.cpp (AiCPU AddCustom, float32[8] + scalar 10.0 → [11..18])",
+      "expected_output": "11.0,12.0,13.0,14.0,15.0,16.0,17.0,18.0",
+      "tolerance": 1e-5
+    },
+    "contribute": {
+      "issue": {
+        "test_method": "automated framework",
+        "status": "fail",
+        "submit_s": 0.194,
+        "first_response_s": null,
+        "errors": [
+          "issue_create_failed: HTTP 405 (Method Not Allowed — Gitcode API endpoint format mismatch)",
+          "gitcode_token: not_configured"
+        ],
+        "api_endpoint_tried": "POST https://gitcode.com/api/v5/repos/ascend/cann/issues",
+        "note": "Gitcode主站可达(200)，但API路径需核实"
+      },
+      "pr_ci": {
+        "test_method": "automated framework",
+        "status": "fail",
+        "submit_s": null,
+        "ci_queue_s": null,
+        "ci_prepare_s": null,
+        "ci_run_s": null,
+        "ci_total_s": null,
+        "ci_result": null,
+        "errors": [
+          "fork_push_failed: HTTP 403 (fork repo ttfhw-bot/cann not found on Gitcode)",
+          "gitcode_token: not_configured",
+          "fork_repo_not_created: ttfhw-bot/cann must be created manually before first run"
+        ]
+      }
+    }
+  }
+}

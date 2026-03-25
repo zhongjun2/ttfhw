@@ -1,0 +1,21 @@
+cann_image: "ascendhub.huawei.com/public-ascendhub/ascend-toolkit:8.0.RC1"
+gitcode_token: "${GITCODE_TOKEN}"
+fork_repo: "ttfhw-bot/cann"
+upstream_repo: "ascend/cann"
+
+timeout:
+  learn_s: 60
+  get_s: 600
+  use_s: 300
+  issue_response_s: 3600
+  ci_total_s: 7200
+
+on_stage_failure: continue   # continue | abort
+
+search:
+  engine: "bing"
+  bing_api_key: "${BING_API_KEY}"   # Set env var BING_API_KEY before running
+  keywords: "Ascend CANN 快速入门"
+  official_domains:
+    - "gitcode.com/ascend"
+    - "hiascend.com"
