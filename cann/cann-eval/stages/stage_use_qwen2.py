@@ -62,33 +62,41 @@ class UseQwen2Stage(BaseStage):
         python = os.path.join(self._venv_dir, "bin", "python")
 
         # Step 1: 安装依赖
+        # 两步安装：先装 torch（torch-npu 直接 pip install 在 Python 3.12 下依赖解析失败），
+        # 再 --no-deps 装 torch-npu，最后装 modelscope/transformers
         self._mc.start("install")
-        try:
-            result = subprocess.run(
-                [python, "-m", "pip", "install", "-q",
-                 "modelscope", "transformers", "torch", "torch-npu"],
-                capture_output=True, text=True, timeout=timeout,
-            )
-            self._mc.stop("install")
-        except subprocess.TimeoutExpired:
-            self._mc.stop("install")
-            self._mc.add_error(
-                phenomenon="pip 安装依赖超时",
-                severity="P0",
-                cause=f"安装超过 {timeout}s 超时限制",
-                solution="检查网络连接或增大 timeout.use_qwen2_s 配置",
-            )
-            self._mc.set_fail()
-            return
-        if result.returncode != 0:
-            self._mc.add_error(
-                phenomenon="pip 安装依赖失败",
-                severity="P0",
-                cause=result.stderr[:200],
-                solution="检查网络连接和 pip 配置",
-            )
-            self._mc.set_fail()
-            return
+        install_steps = [
+            ["torch"],
+            ["torch-npu", "--no-deps"],
+            ["modelscope", "transformers"],
+        ]
+        for pkg_group in install_steps:
+            try:
+                result = subprocess.run(
+                    [python, "-m", "pip", "install", "-q"] + pkg_group,
+                    capture_output=True, text=True, timeout=timeout,
+                )
+            except subprocess.TimeoutExpired:
+                self._mc.stop("install")
+                self._mc.add_error(
+                    phenomenon="pip 安装依赖超时",
+                    severity="P0",
+                    cause=f"安装超过 {timeout}s 超时限制",
+                    solution="检查网络连接或增大 timeout.use_qwen2_s 配置",
+                )
+                self._mc.set_fail()
+                return
+            if result.returncode != 0:
+                self._mc.stop("install")
+                self._mc.add_error(
+                    phenomenon=f"pip 安装 {' '.join(pkg_group)} 失败",
+                    severity="P0",
+                    cause=result.stderr[:200],
+                    solution="检查网络连接和 pip 配置",
+                )
+                self._mc.set_fail()
+                return
+        self._mc.stop("install")
 
         # Step 2: 下载模型
         self._mc.start("download")

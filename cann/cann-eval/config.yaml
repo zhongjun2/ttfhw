@@ -10,6 +10,6 @@ timeout:
   get_docker_s: 600
   get_runpkg_s: 300
   use_quickstart_s: 60
-  use_qwen2_s: 600
+  use_qwen2_s: 2400
 
 on_stage_failure: continue

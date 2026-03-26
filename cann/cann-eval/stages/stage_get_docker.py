@@ -35,7 +35,7 @@ class GetDockerStage(BaseStage):
         self._mc.start("wall_clock")
         self._mc.start("net_download")
         try:
-            img = self._client.images.pull(image_name, timeout=timeout)
+            img = self._client.images.pull(image_name)
             self._mc.stop("net_download")
             self._image_size_mb = round(img.attrs.get("Size", 0) / (1024 * 1024), 1)
         except Exception as e:
@@ -52,7 +52,7 @@ class GetDockerStage(BaseStage):
 
         try:
             self._container = self._client.containers.run(
-                image_name, detach=True, tty=True
+                image_name, command="tail -f /dev/null", detach=True, tty=True
             )
         except Exception as e:
             self._mc.add_error(
