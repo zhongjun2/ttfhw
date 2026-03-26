@@ -31,7 +31,21 @@ def test_verify_fail_when_pull_fails():
         assert stage.verify() is False
         assert any("docker_pull" in e for e in stage.metrics()["errors"])
 
-def test_metrics_includes_required_fields():
+def test_setup_fails_when_docker_unavailable():
+    stage = GetStage(CONFIG)
+    with patch("stages.stage_get.docker") as mock_docker:
+        mock_docker.from_env.side_effect = Exception("permission denied")
+        stage.setup()
+        assert stage.verify() is False
+        assert any("docker_setup_failed" in e for e in stage.metrics()["errors"])
+
+def test_run_skips_when_setup_failed():
+    stage = GetStage(CONFIG)
+    with patch("stages.stage_get.docker") as mock_docker:
+        mock_docker.from_env.side_effect = Exception("permission denied")
+        stage.setup()
+        stage.run()   # should not raise even though client is None
+        assert stage.verify() is False
     stage = GetStage(CONFIG)
     with patch("stages.stage_get.docker") as mock_docker:
         client = MagicMock()

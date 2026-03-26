@@ -21,7 +21,17 @@ class ContributeStage(BaseStage):
         self._pr_ci_fields: dict = {}
 
     def _headers(self) -> dict:
-        return {"Authorization": f"Bearer {self._token}"}
+        return {"PRIVATE-TOKEN": self._token}
+
+    def _get_project_id(self, namespace_path: str) -> int | None:
+        """Resolve 'owner/repo' path to numeric GitLab project ID."""
+        r = requests.get(
+            f"{GITCODE_API}/projects/{namespace_path.replace('/', '%2F')}",
+            headers=self._headers(),
+        )
+        if r.status_code == 200:
+            return r.json().get("id")
+        return None
 
     def setup(self) -> None:
         pass
@@ -31,6 +41,10 @@ class ContributeStage(BaseStage):
         self.run_pr()
 
     def run_issue(self) -> None:
+        if not self._token:
+            self._issue_mc.add_error("gitcode_token_not_configured")
+            self._issue_mc.set_fail()
+            return
         ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S")
         payload = {
             "title": f"[TTFHW-TEST] Automated test issue {ts}",
@@ -77,8 +91,20 @@ class ContributeStage(BaseStage):
             self._issue_mc.set_warn()
 
     def run_pr(self) -> None:
+        if not self._token:
+            self._pr_mc.add_error("gitcode_token_not_configured")
+            self._pr_mc.set_fail()
+            return
+
         ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S")
         branch = f"ttfhw-test-{ts}"
+
+        # Resolve fork's numeric project ID (required by GitLab MR API)
+        fork_project_id = self._get_project_id(self._fork)
+        if fork_project_id is None:
+            self._pr_mc.add_error(f"fork_project_not_found: {self._fork}")
+            self._pr_mc.set_fail()
+            return
 
         # Push fixture to fork
         try:
@@ -104,7 +130,7 @@ class ContributeStage(BaseStage):
             "target_branch": "master",
             "title": f"[TTFHW-TEST] Automated test PR {ts}",
             "description": "Automated TTFHW test PR. Please ignore.",
-            "source_project_id": self._fork,
+            "source_project_id": fork_project_id,
         }
         self._pr_mc.start("submit")
         resp = requests.post(

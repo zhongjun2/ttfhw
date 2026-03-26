@@ -14,9 +14,15 @@ class GetStage(BaseStage):
         self._setup_steps: int = 0
 
     def setup(self) -> None:
-        self._client = docker.from_env()
+        try:
+            self._client = docker.from_env()
+        except Exception as e:
+            self._mc.add_error(f"docker_setup_failed: {e}")
+            self._mc.set_fail()
 
     def run(self) -> None:
+        if self._client is None:
+            return  # already set_fail() in setup()
         image_name = self._config.get("cann_image", "")
         timeout = self._config.get("timeout", {}).get("get_s", 600)
 
