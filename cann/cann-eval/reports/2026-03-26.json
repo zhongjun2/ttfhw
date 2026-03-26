@@ -1,0 +1,70 @@
+{
+  "test_date": "2026-03-26T14:06:04.969827+00:00",
+  "mode": "auto",
+  "environment": {
+    "os": "Linux 6.8.0-59-generic",
+    "arch": "x86_64",
+    "python": "3.12.3",
+    "docker_version": "Docker version 29.2.1, build a5c7197"
+  },
+  "stages": {
+    "learn": {
+      "status": "fail",
+      "breakpoints": [
+        {
+          "severity": "P1",
+          "phenomenon": "搜索结果中未找到 hiascend.com 官方链接",
+          "cause": "官方文档 SEO 排名低，或搜索结果受地区影响",
+          "solution": "直接访问 hiascend.com 文档页面"
+        }
+      ],
+      "search_s": 10.194,
+      "official_link_rank": null,
+      "official_url": null,
+      "official_accessible": false,
+      "quickstart_url": "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/quickstart/quickstart/quickstart_18_0001.html",
+      "quickstart_found": true,
+      "qwen2_guide_url": null,
+      "qwen2_guide_found": false,
+      "accessible_links": 1,
+      "broken_links": 0
+    },
+    "get_docker": {
+      "status": "pass",
+      "breakpoints": [],
+      "net_download_s": 1.269,
+      "wall_clock_s": 2.012,
+      "image_size_mb": 4081.8,
+      "cann_version": "version=9.0.0-beta.1",
+      "atc_available": true
+    },
+    "use_quickstart": {
+      "status": "pass",
+      "breakpoints": [],
+      "toolchain_s": 0.379,
+      "set_env_found": true,
+      "atc_exit_code": 0,
+      "atc_help_output": "/usr/local/Ascend/cann-9.0.0-beta.1/bin/atc\nATC start working now, please wait for a moment.\nusage: atc <args>\ngenerate offline model example:\natc --model=./alexnet.prototxt --weight=./alexnet.caffemo"
+    },
+    "use_qwen2": {
+      "status": "pass",
+      "breakpoints": [],
+      "install_s": 82.74,
+      "download_s": 6.036,
+      "inference_s": 5.794,
+      "model_size_mb": 953.3,
+      "inference_ok": true,
+      "inference_output": "你好，我最近感觉很",
+      "software_error": false
+    }
+  },
+  "breakpoints": [
+    {
+      "stage": "learn",
+      "severity": "P1",
+      "phenomenon": "搜索结果中未找到 hiascend.com 官方链接",
+      "cause": "官方文档 SEO 排名低，或搜索结果受地区影响",
+      "solution": "直接访问 hiascend.com 文档页面"
+    }
+  ]
+}

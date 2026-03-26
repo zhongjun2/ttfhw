@@ -20,6 +20,21 @@ _HARDWARE_ERROR_PATTERNS = [
 
 INFERENCE_SCRIPT = textwrap.dedent("""\
 import os
+import sys
+import types
+import importlib.machinery
+# 禁止 torch 通过 entrypoint 自动加载 torch_npu 后端（无 NPU 机器上会崩溃）
+os.environ['TORCH_DEVICE_BACKEND_AUTOLOAD'] = '0'
+# torch_npu 在无 NPU 机器上 __init__.py 会崩溃（import torch_npu.npu 失败）。
+# 捕获后注入带有合法 __spec__ 的 dummy module，防止 transformers 的
+# importlib.util.find_spec('torch_npu') 抛出 ValueError: torch_npu.__spec__ is None。
+try:
+    import torch_npu  # noqa: F401
+except Exception:
+    _dummy = types.ModuleType('torch_npu')
+    _dummy.__spec__ = importlib.machinery.ModuleSpec('torch_npu', loader=None)
+    sys.modules['torch_npu'] = _dummy
+    sys.modules['torch_npu.npu'] = types.ModuleType('torch_npu.npu')
 from transformers import AutoModelForCausalLM, AutoTokenizer
 model_path = os.environ['CANN_EVAL_MODEL_PATH']
 model = AutoModelForCausalLM.from_pretrained(model_path, device_map='cpu')
@@ -61,16 +76,12 @@ class UseQwen2Stage(BaseStage):
         # 使用 venv 内的 Python，不污染宿主机环境
         python = os.path.join(self._venv_dir, "bin", "python")
 
-        # Step 1: 安装依赖
-        # 两步安装：先装 torch（torch-npu 直接 pip install 在 Python 3.12 下依赖解析失败），
-        # 再 --no-deps 装 torch-npu，最后装 modelscope/transformers
+        # Step 1: 安装基础依赖（不含 torch-npu）
+        # 注意：torch-npu 在无 NPU 机器上 import 会崩溃（torch_npu.npu 初始化失败），
+        # 会导致 modelscope CLI 无法启动。必须在模型下载完成后再装 torch-npu。
         self._mc.start("install")
-        install_steps = [
-            ["torch"],
-            ["torch-npu", "--no-deps"],
-            ["modelscope", "transformers"],
-        ]
-        for pkg_group in install_steps:
+        install_steps_pre = [["torch", "modelscope", "transformers", "accelerate"]]
+        for pkg_group in install_steps_pre:
             try:
                 result = subprocess.run(
                     [python, "-m", "pip", "install", "-q"] + pkg_group,
@@ -137,6 +148,22 @@ class UseQwen2Stage(BaseStage):
                 except Exception:
                     pass
         self._model_size_mb = round(total / (1024 * 1024), 1)
+
+        # Step 2.5: 模型下载完成后再装 torch-npu（--no-deps 避免依赖冲突）
+        # torch-npu 在无 NPU 机器上 import 会崩溃，不能在 modelscope 下载前安装
+        npu_result = subprocess.run(
+            [python, "-m", "pip", "install", "-q", "torch-npu", "--no-deps"],
+            capture_output=True, text=True, timeout=120,
+        )
+        if npu_result.returncode != 0:
+            self._mc.add_error(
+                phenomenon="torch-npu 安装失败（P1 可绕路，CPU 推理不依赖 NPU）",
+                severity="P1",
+                cause=npu_result.stderr[:200],
+                solution="在昇腾硬件上安装 torch-npu；CPU 测试可跳过",
+            )
+            self._mc.set_warn()
+            # 不 return，CPU 推理不需要 torch-npu 也能继续
 
         # Step 3: 运行推理
         env = os.environ.copy()
