@@ -462,12 +462,12 @@ curl -X POST "https://api.gitcode.com/api/v5/repos/cann/community/issues" \
 {
   "number": 94,
   "title": "[TTFHW-TEST] Automated test issue 20260326T071319",
-  "html_url": "https://gitcode.com/cann/community/issues/94"
+  "html_url": "https://gitcode.com/cann/community/issues/95"
 }
 ```
 
 **HTTP 状态：** 200 ✅
-**Issue URL：** [gitcode.com/cann/community/issues/94](https://gitcode.com/cann/community/issues/94)
+**Issue URL：** [gitcode.com/cann/community/issues/95](https://gitcode.com/cann/community/issues/95)
 **API 响应耗时：** 737ms
 
 ---
@@ -479,7 +479,7 @@ curl -X POST "https://api.gitcode.com/api/v5/repos/cann/community/issues" \
 用 GET 接口查一下：
 
 ```bash
-curl "https://api.gitcode.com/api/v5/repos/cann/community/issues/94?access_token=<TOKEN>"
+curl "https://api.gitcode.com/api/v5/repos/cann/community/issues/95?access_token=<TOKEN>"
 ```
 
 **输出关键字段：**
@@ -488,7 +488,7 @@ curl "https://api.gitcode.com/api/v5/repos/cann/community/issues/94?access_token
   "number": 94,
   "title": "[TTFHW-TEST] Automated test issue 20260326T071319",
   "state": "open",
-  "html_url": "https://gitcode.com/cann/community/issues/94"
+  "html_url": "https://gitcode.com/cann/community/issues/95"
 }
 ```
 
@@ -554,4 +554,4 @@ Issue 已提交，状态 `open`。
 | 安装路径 | `/usr/local/Ascend/cann-9.0.0-beta.1/` |
 | 核心工具 | `atc`、`ccec`、`aoe`、`bisheng`、`cannsim` |
 | 环境变量脚本 | `source /usr/local/Ascend/cann-9.0.0-beta.1/set_env.sh` |
-| Issue 提交 | [gitcode.com/cann/community/issues/94](https://gitcode.com/cann/community/issues/94) |
+| Issue 提交 | [gitcode.com/cann/community/issues/95](https://gitcode.com/cann/community/issues/95) |
