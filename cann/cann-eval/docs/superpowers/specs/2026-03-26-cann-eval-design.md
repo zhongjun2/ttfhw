@@ -1,6 +1,6 @@
 # CANN 易用性评估工具 — 架构设计规格
 
-**版本：** v1.1
+**版本：** v1.3
 **创建日期：** 2026-03-26
 **对应需求：** `docs/requirements.md` v1.0
 **状态：** 正式
@@ -103,16 +103,27 @@ class MetricsCollector:
     def start(self, name: str) -> None
     def stop(self, name: str) -> None
     def elapsed(self, name: str) -> float | None   # 秒，保留 3 位小数
-    def add_error(self, msg: str, severity: str = "P1") -> None  # 添加断点
+    def add_error(
+        self,
+        phenomenon: str,             # 现象（F4.3）
+        severity: str = "P1",        # P0 | P1 | P2（F4.4）
+        cause: str = "",             # 原因（F4.3）
+        solution: str = "",          # 解决方法/绕路方案（F4.3）
+    ) -> None
     def set_warn(self) -> None
     def set_fail(self) -> None
     def status(self) -> str            # "pass" | "warn" | "fail"
     def to_dict(self) -> dict
 ```
 
-断点（breakpoint）存储结构：
+断点（breakpoint）存储结构（对应 F4.3 / F4.4）：
 ```python
-{"severity": "P0"|"P1"|"P2", "message": str}
+{
+    "severity": "P0" | "P1" | "P2",
+    "phenomenon": str,   # 现象
+    "cause": str,        # 原因
+    "solution": str,     # 解决方法/绕路方案
+}
 ```
 - P0：阻断性，后续步骤无法进行
 - P1：绕路可过（默认）
@@ -147,12 +158,15 @@ class Reporter:
 
 **依赖：** `duckduckgo-search`、`requests`
 
+**搜索引擎选择：** 使用 Google（`googlesearch-python` 包，`search()` 函数）。无需 API Key，直接爬取 Google 搜索结果页。注意：Google 可能对频繁请求触发验证码或封禁，需在请求间添加随机延迟（2~5 秒）；若单次测试中连续搜索不超过 3 次，触发风险较低。
+
 **流程：**
-1. 搜索 `"CANN 昇腾 安装"`（`DDGS().text(query, max_results=10)`），记录耗时（F1.4）
+1. 搜索 `"CANN 昇腾 安装"`（`search(query, num_results=10)`），记录耗时（F1.1 F1.4）
 2. 在结果 URL 中找 `hiascend.com` 链接，记录排名（F1.1 F1.4）
-3. HTTP HEAD 验证该链接可访问（F1.2）
-4. 搜索 `"Qwen2 CANN 昇腾 部署"`，找部署文档链接（F1.3）
-5. HTTP HEAD 检查所有找到链接，统计断链（F1.5）
+3. HTTP HEAD 验证官方链接可访问（F1.2）
+4. 第二次搜索 `"CANN 快速入门 site:hiascend.com"`，找 Quick Start 文档链接；若搜索无结果，回退到 `config.yaml` 中的 `quickstart_url` 预设值（F1.2）
+5. 搜索 `"Qwen2 CANN 昇腾 部署"`，找 Qwen2 部署文档链接（F1.3）
+6. HTTP HEAD 逐一检查所有找到的链接，统计可达/断链（F1.5）
 
 **Metrics：**
 ```
@@ -238,14 +252,18 @@ status / errors
 
 ### 5.5 UseQwen2Stage（F3.2 F3.3 F3.4）
 
-**依赖：** `modelscope`、`transformers`、`torch`（宿主机安装，独立 venv）
+**依赖：** `modelscope`、`transformers`、`torch`、`torch-npu`（宿主机安装，独立 venv）
 
-**模型：** `qwen/Qwen2-0.5B`（约 1 GB，CPU 可运行）
+**模型选择：** `qwen/Qwen2-0.5B`（约 1 GB）。
 
-**注意：** F3.2 要求配置 torch_npu + CANN 环境；在纯 CPU 机器上，torch_npu 可安装但无法初始化 NPU 设备（预期行为）。验证目标是软件层正常，不要求 NPU 推理成功。
+> **设计决策**：需求文档约束章节提及 Qwen2-7B（14 GB）作为参考体量，但用户明确要求使用最小模型以适应 CPU 测试环境。使用 Qwen2-0.5B 可在无 GPU/NPU 的机器上完成完整推理验证，并大幅缩短下载时间。报告中将注明模型规格，以便与使用 7B 的测试结果对比时知悉差异。
+
+**模型来源：** ModelScope（`modelscope download`）。原因：中国大陆网络环境下 ModelScope 比 HuggingFace 可达性更好，无需额外配置；config.yaml 预留 `qwen2_source: modelscope|huggingface` 字段供切换。
+
+**注意：** F3.2 要求配置 torch_npu + CANN 环境。在纯 CPU 机器上，torch_npu 可安装但无法初始化 NPU 设备（预期行为，非软件错误）。验证目标：软件栈安装正常，推理命令可启动，不因软件原因报错。
 
 **流程：**
-1. 创建隔离 venv，安装：`modelscope transformers torch torch-npu`，记录安装耗时（F3.2）
+1. 创建隔离 venv，安装 `modelscope transformers torch torch-npu`，记录安装耗时（F3.2）
 2. `modelscope download --model qwen/Qwen2-0.5B --local_dir <cache_dir>`，记录下载大小 + 耗时（F3.3）
 3. 运行推理命令（F3.4）：
    ```python
@@ -256,7 +274,7 @@ status / errors
    print(tok.decode(out[0], skip_special_tokens=True))
    ```
 4. 分析退出码：exit_code == 0 → pass；若失败，判断是否为软件原因（非 NPU 驱动缺失）
-5. teardown 时删除 venv（保留模型缓存可复用）
+5. teardown 时删除 venv（保留模型缓存，可复用避免重复下载）
 
 **Metrics：**
 ```
@@ -374,12 +392,13 @@ status / errors
 ## 十、CLI 入口（runner.py，F5.3）
 
 ```bash
-python runner.py                          # 运行全部阶段
-python runner.py --install docker         # 只测 Docker 安装
-python runner.py --install run_pkg        # 只测 .run 安装
-python runner.py --stage learn            # 只运行了解阶段
-python runner.py --format markdown        # 输出 Markdown 报告
-python manual/recorder.py                 # 人工辅助模式
+python runner.py --mode auto                     # 自动化模式，运行全部阶段（默认）
+python runner.py --mode auto --install docker    # 只测 Docker 安装
+python runner.py --mode auto --install run_pkg   # 只测 .run 安装
+python runner.py --mode auto --install both      # 两种方式都测（默认）
+python runner.py --mode auto --stage learn       # 只运行了解阶段
+python runner.py --mode auto --format markdown   # 输出 Markdown 报告
+python manual/recorder.py                        # 人工辅助模式（对应 --mode manual）
 ```
 
 ---
@@ -389,7 +408,9 @@ python manual/recorder.py                 # 人工辅助模式
 ```yaml
 cann_image: "ascendai/cann:latest"
 run_pkg_url: ""                        # .run 下载 URL，需手动更新（hiascend.com SPA 无法自动抓取）
+quickstart_url: "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/quickstart/quickstart/quickstart_18_0001.html"  # Quick Start 文档 URL 回退值
 qwen2_model: "qwen/Qwen2-0.5B"
+qwen2_source: "modelscope"             # modelscope | huggingface
 qwen2_cache_dir: "/tmp/qwen2_cache"
 
 timeout:
