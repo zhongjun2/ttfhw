@@ -1,0 +1,11 @@
+googlesearch-python>=1.2.0
+requests>=2.31.0
+docker>=7.0.0
+modelscope>=1.9.0
+transformers>=4.40.0
+torch>=2.2.0
+torch-npu>=2.2.0
+mcp>=1.0.0
+pyyaml>=6.0
+pytest>=8.0.0
+pytest-mock>=3.12.0

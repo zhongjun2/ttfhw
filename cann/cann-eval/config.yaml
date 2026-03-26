@@ -1,0 +1,15 @@
+cann_image: "ascendai/cann:latest"
+run_pkg_url: ""
+quickstart_url: "https://www.hiascend.com/document/detail/zh/CANNCommunityEdition/80RC3alpha003/quickstart/quickstart/quickstart_18_0001.html"
+qwen2_model: "qwen/Qwen2-0.5B"
+qwen2_source: "modelscope"
+qwen2_cache_dir: "/tmp/qwen2_cache"
+
+timeout:
+  learn_s: 60
+  get_docker_s: 600
+  get_runpkg_s: 300
+  use_quickstart_s: 60
+  use_qwen2_s: 600
+
+on_stage_failure: continue
